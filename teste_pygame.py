@@ -22,10 +22,8 @@ def random_color():
         random.randint(80, 255),
     )
 
-
 def random_velocity(speed=3):
     return speed * random.choice([-1, 1]), speed * random.choice([-1, 1])
-
 
 class NameObject:
     def __init__(self, name, x, y):
@@ -64,7 +62,6 @@ class NameObject:
     def draw(self, surface):
         surface.blit(self.surface, self.rect)
 
-
 def handle_collisions(objects):
     for i in range(len(objects)):
         for j in range(i + 1, len(objects)):
@@ -79,7 +76,6 @@ def handle_collisions(objects):
                 b.rect.y += b.vy
                 a.recolor()
                 b.recolor()
-
 
 objects = [
     NameObject("Marcelo", WIDTH // 3, HEIGHT // 2),
