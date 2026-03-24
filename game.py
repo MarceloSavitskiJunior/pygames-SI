@@ -12,7 +12,14 @@ from models.paddle import Paddle
 from models.scoreboard import Scoreboard
 from models.ai_controller import AIController
 from models.renderer import Renderer
-from sounds.sound import play_sfx, play_final_game_sfx, play_sound_track, play_paddle_sfx, stop_soundtrack
+from sounds.sound import (
+    play_sfx,
+    play_final_game_sfx,
+    play_sound_track,
+    play_paddle_sfx,
+    stop_soundtrack
+)
+
 
 class GameState(Enum):
     MENU = auto()
@@ -25,6 +32,8 @@ class Game:
 
     def __init__(self) -> None:
         pygame.init()
+        pygame.mixer.init()
+
         self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
         pygame.display.set_caption(TITLE)
         self.clock = pygame.time.Clock()
@@ -83,9 +92,14 @@ class Game:
             self._handle_player1_input()
             self.ai.update(self.paddle2, self.ball)
 
-            self.ball.update()
-            self.ball.bounce_off_paddle(self.paddle1.rect)
-            self.ball.bounce_off_paddle(self.paddle2.rect)
+            if self.ball.update():
+                play_paddle_sfx()
+
+            if self.ball.bounce_off_paddle(self.paddle1.rect):
+                play_paddle_sfx()
+
+            if self.ball.bounce_off_paddle(self.paddle2.rect):
+                play_paddle_sfx()
 
             if self.ball.out_of_bounds_left():
                 self.scoreboard.score_player2()
@@ -99,6 +113,7 @@ class Game:
 
             winner = self.scoreboard.get_winner()
             if winner:
+                stop_soundtrack()
                 return GameState.VICTORY, winner
 
             self.renderer.draw_game(
@@ -108,7 +123,7 @@ class Game:
             self.clock.tick(FPS)
 
     def _scene_victory(self, winner: str) -> GameState:
-        play_final_game_sfx()  # toca uma vez aqui
+        play_final_game_sfx()
 
         while True:
             if not self._handle_events():
