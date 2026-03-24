@@ -27,22 +27,32 @@ class Ball:
         self.vel_x = BALL_INITIAL_SPEED * direction
         self.vel_y = BALL_INITIAL_SPEED
 
-    def update(self) -> None:
+    def update(self) -> bool:
         self.x += self.vel_x
         self.y += self.vel_y
+
+        hit_wall = False
 
         if self.y - self.radius <= 0 or self.y + self.radius >= SCREEN_HEIGHT:
             self.vel_y = -self.vel_y
             self.y = max(self.radius, min(SCREEN_HEIGHT - self.radius, self.y))
+            hit_wall = True
 
-    def bounce_off_paddle(self, paddle_rect: pygame.Rect) -> None:
+        return hit_wall
+
+    def bounce_off_paddle(self, paddle_rect: pygame.Rect) -> bool:
         if not self.rect.colliderect(paddle_rect):
-            return
+            return False
 
         if paddle_rect.centerx < SCREEN_WIDTH // 2 and self.vel_x < 0:
             self.vel_x = -self.vel_x
+            self.x = paddle_rect.right + self.radius
+
         elif paddle_rect.centerx > SCREEN_WIDTH // 2 and self.vel_x > 0:
             self.vel_x = -self.vel_x
+            self.x = paddle_rect.left - self.radius
+
+        return True
 
     def out_of_bounds_left(self) -> bool:
         return self.x + self.radius < 0
