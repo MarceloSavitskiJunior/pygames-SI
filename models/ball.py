@@ -1,6 +1,9 @@
+import random
 import pygame
 from settings import (
-    SCREEN_WIDTH, SCREEN_HEIGHT, BALL_RADIUS, BALL_INITIAL_SPEED, WHITE
+    SCREEN_WIDTH, SCREEN_HEIGHT,
+    BALL_RADIUS, BALL_INITIAL_SPEED, BALL_MAX_SPEED, BALL_SPEED_INCREMENT,
+    WHITE,
 )
 
 class Ball:
@@ -15,44 +18,59 @@ class Ball:
     @property
     def rect(self) -> pygame.Rect:
         return pygame.Rect(
-            self.x - self.radius,
-            self.y - self.radius,
+            int(self.x - self.radius),
+            int(self.y - self.radius),
             self.radius * 2,
             self.radius * 2,
         )
 
+    def _random_vel_y(self) -> float:
+        speed = random.uniform(2.0, BALL_MAX_SPEED * 0.6)
+        return speed * random.choice([-1, 1])
+
     def reset(self, direction: int = 1) -> None:
-        self.x = SCREEN_WIDTH // 2
-        self.y = SCREEN_HEIGHT // 2
+        self.x = float(SCREEN_WIDTH // 2)
+        self.y = float(SCREEN_HEIGHT // 2)
         self.vel_x = BALL_INITIAL_SPEED * direction
-        self.vel_y = BALL_INITIAL_SPEED
+        self.vel_y = self._random_vel_y()
 
     def update(self) -> bool:
         self.x += self.vel_x
         self.y += self.vel_y
 
-        hit_wall = False
+        bounced = False
 
-        if self.y - self.radius <= 0 or self.y + self.radius >= SCREEN_HEIGHT:
-            self.vel_y = -self.vel_y
-            self.y = max(self.radius, min(SCREEN_HEIGHT - self.radius, self.y))
-            hit_wall = True
+        if self.y - self.radius <= 0:
+            self.y = float(self.radius)
+            self.vel_y = abs(self._random_vel_y())
+            bounced = True
 
-        return hit_wall
+        elif self.y + self.radius >= SCREEN_HEIGHT:
+            self.y = float(SCREEN_HEIGHT - self.radius)
+            self.vel_y = -abs(self._random_vel_y())
+            bounced = True
+
+        return bounced
 
     def bounce_off_paddle(self, paddle_rect: pygame.Rect) -> bool:
         if not self.rect.colliderect(paddle_rect):
             return False
 
+        hit = False
+
         if paddle_rect.centerx < SCREEN_WIDTH // 2 and self.vel_x < 0:
-            self.vel_x = -self.vel_x
-            self.x = paddle_rect.right + self.radius
+            speed = min(abs(self.vel_x) + BALL_SPEED_INCREMENT, BALL_MAX_SPEED)
+            self.vel_x = speed
+            self.vel_y = self._random_vel_y()
+            hit = True
 
         elif paddle_rect.centerx > SCREEN_WIDTH // 2 and self.vel_x > 0:
-            self.vel_x = -self.vel_x
-            self.x = paddle_rect.left - self.radius
+            speed = min(abs(self.vel_x) + BALL_SPEED_INCREMENT, BALL_MAX_SPEED)
+            self.vel_x = -speed
+            self.vel_y = self._random_vel_y()
+            hit = True
 
-        return True
+        return hit
 
     def out_of_bounds_left(self) -> bool:
         return self.x + self.radius < 0
