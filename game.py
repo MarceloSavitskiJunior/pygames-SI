@@ -7,17 +7,17 @@ from settings import (
     SCREEN_WIDTH, SCREEN_HEIGHT, FPS, TITLE,
     PADDLE_MARGIN, PADDLE_WIDTH,
 )
-from models.ball import Ball
 from models.paddle import Paddle
 from models.scoreboard import Scoreboard
 from models.ai_controller import AIController
 from models.renderer import Renderer
+from models.ball_manager import BallManager
 from sounds.sound import (
     play_sfx,
     play_final_game_sfx,
     play_sound_track,
     play_paddle_sfx,
-    stop_soundtrack
+    stop_soundtrack,
 )
 
 
@@ -40,13 +40,13 @@ class Game:
         self.renderer = Renderer(self.screen)
         self.ai = AIController()
 
-        self.ball: Ball | None = None
+        self.ball_manager: BallManager | None = None
         self.paddle1: Paddle | None = None
         self.paddle2: Paddle | None = None
         self.scoreboard: Scoreboard | None = None
 
     def _create_entities(self) -> None:
-        self.ball = Ball()
+        self.ball_manager = BallManager()
         self.paddle1 = Paddle(x=PADDLE_MARGIN)
         self.paddle2 = Paddle(x=SCREEN_WIDTH - PADDLE_MARGIN - PADDLE_WIDTH)
         self.scoreboard = Scoreboard()
@@ -89,27 +89,33 @@ class Game:
             if not self._handle_events():
                 return GameState.QUIT, ""
 
+            bm = self.ball_manager
+
             self._handle_player1_input()
-            self.ai.update(self.paddle2, self.ball)
+            real_balls = [b for b in bm.balls if b.is_real]
+            if real_balls:
+                self.ai.update(self.paddle2, real_balls[0])
 
-            if self.ball.update():
+            bm.check_fragment_timer()
+
+            if bm.update_all():
                 play_paddle_sfx()
 
-            if self.ball.bounce_off_paddle(self.paddle1.rect):
+            if bm.bounce_all_off_paddle(self.paddle1.rect):
                 play_paddle_sfx()
 
-            if self.ball.bounce_off_paddle(self.paddle2.rect):
+            if bm.bounce_all_off_paddle(self.paddle2.rect):
                 play_paddle_sfx()
 
-            if self.ball.out_of_bounds_left():
+            scored = bm.check_scoring()
+            if scored == "player2":
                 self.scoreboard.score_player2()
                 play_sfx()
-                self.ball.reset(direction=1)
-
-            if self.ball.out_of_bounds_right():
+                bm.reset(direction=1)
+            elif scored == "player1":
                 self.scoreboard.score_player1()
                 play_sfx()
-                self.ball.reset(direction=-1)
+                bm.reset(direction=-1)
 
             winner = self.scoreboard.get_winner()
             if winner:
@@ -117,7 +123,7 @@ class Game:
                 return GameState.VICTORY, winner
 
             self.renderer.draw_game(
-                self.ball, self.paddle1, self.paddle2, self.scoreboard
+                bm, self.paddle1, self.paddle2, self.scoreboard
             )
             pygame.display.flip()
             self.clock.tick(FPS)
@@ -145,7 +151,6 @@ class Game:
         while state != GameState.QUIT:
             if state == GameState.MENU:
                 state = self._scene_menu()
-
             elif state == GameState.PLAYING:
                 state, winner = self._scene_game()
                 if state == GameState.VICTORY:
