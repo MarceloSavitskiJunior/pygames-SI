@@ -1,6 +1,6 @@
 import pygame
 from settings import SCREEN_WIDTH, SCREEN_HEIGHT, BLACK, WHITE, GRAY
-from models.ball import Ball
+from models.ball_manager import BallManager
 from models.paddle import Paddle
 from models.scoreboard import Scoreboard
 
@@ -37,7 +37,7 @@ class Renderer:
 
     def draw_game(
         self,
-        ball: Ball,
+        ball_manager: BallManager,
         paddle1: Paddle,
         paddle2: Paddle,
         scoreboard: Scoreboard,
@@ -46,7 +46,7 @@ class Renderer:
         self._draw_center_line()
         paddle1.draw(self.surface)
         paddle2.draw(self.surface)
-        ball.draw(self.surface)
+        ball_manager.draw_all(self.surface)
         self._draw_scoreboard(scoreboard)
 
     def draw_menu(self) -> None:
